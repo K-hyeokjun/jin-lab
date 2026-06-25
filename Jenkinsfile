@@ -5,11 +5,21 @@ pipeline {
             steps {
                 sh '''
                 DATE=$(date +%Y%m%d)
+                mkdir -p /tmp/trivy-contrib
+                cat << 'TMPL' > /tmp/trivy-contrib/csv.tpl
+PackageName,Version,Severity,CVE_ID,Description
+{{- range .Results}}
+{{- range .Vulnerabilities}}
+{{.PkgName}},{{.InstalledVersion}},{{.Severity}},{{.VulnerabilityID}},"{{.Description}}"
+{{- end}}
+{{- end}}
+TMPL
                 /usr/local/bin/trivy image \
                   --format template \
-                  --template "@/usr/local/bin/trivy-contrib/csv.tpl" \
+                  --template "@/tmp/trivy-contrib/csv.tpl" \
                   --output /tmp/trivy_${DATE}.csv \
                   nginx:latest
+                cp /tmp/trivy_${DATE}.csv ${WORKSPACE}/trivy_${DATE}.csv
                 '''
             }
         }
