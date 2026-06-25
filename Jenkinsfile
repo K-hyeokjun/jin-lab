@@ -8,7 +8,7 @@ pipeline {
                 mkdir -p /tmp/trivy-contrib
                 cat << 'TMPL' > /tmp/trivy-contrib/csv.tpl
 PackageName,Version,Severity,CVE_ID,Description
-{{- range .Results}}
+{{- range .}}
 {{- range .Vulnerabilities}}
 {{.PkgName}},{{.InstalledVersion}},{{.Severity}},{{.VulnerabilityID}},"{{.Description}}"
 {{- end}}
