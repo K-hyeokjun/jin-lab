@@ -35,7 +35,7 @@ TPLEOF
                     git config --global user.name "Jenkins"
                     git clone https://\${GIT_USER}:\${GIT_TOKEN}@github.com/K-hyeokjun/jin-lab.git /tmp/jin-lab-\${BUILD_NUMBER}
                     cd /tmp/jin-lab-\${BUILD_NUMBER}
-                    sed -i 's|image: nginx:.*|image: nginx:${BUILD_NUMBER}|g' app-a/nginx.yaml
+                    #sed -i 's|image: nginx:.*|image: nginx:${BUILD_NUMBER}|g' app-a/nginx.yaml
                     git add .
                     git commit -m "Update image tag to nginx:${BUILD_NUMBER}"
                     git push origin main
