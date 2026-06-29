@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-a
+  name: new-app-a
   namespace: app-a
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: app-a
+      app: new-app-a
   template:
     metadata:
       labels:
-        app: app-a
+        app: new-app-a
     spec:
       containers:
-      - name: app-a
+      - name: new-app-a
         image: nginx:latest
         ports:
         - containerPort: 80
@@ -22,11 +22,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-a
+  name: new-app-a
   namespace: app-a
 spec:
   selector:
-    app: app-a
+    app: new-app-a
   ports:
   - port: 80
     targetPort: 80
