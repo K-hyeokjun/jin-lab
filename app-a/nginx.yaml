@@ -4,7 +4,7 @@ metadata:
   name: new-app-a
   namespace: app-a
   annotations:
-    build-number: '7'
+    build-number: '8'
 spec:
   replicas: 1
   selector:
