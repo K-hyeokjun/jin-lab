@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: new-app-a
-        image: nginx:2
+        image: nginx:3
         ports:
         - containerPort: 80
 ---
