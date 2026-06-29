@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+    environment {
+        IMAGE_TAG = "nginx:${BUILD_NUMBER}"
+    }
+    stages {
+        stage('Trivy Scan') {
+            steps {
+                sh """
+                DATE=\$(date +%Y%m%d)
+                cat > /tmp/trivy-csv.tpl << 'TPLEOF'
+PackageName,VulnerabilityID,Severity,InstalledVersion,FixedVersion,Title
+{{- range .}}{{- range .Vulnerabilities}}
+{{.PkgName}},{{.VulnerabilityID}},{{.Severity}},{{.InstalledVersion}},{{.FixedVersion}},{{.Title}}
+{{- end}}{{- end}}
+TPLEOF
+                /usr/local/bin/trivy image \
+                  --format template \
+                  --template "@/tmp/trivy-csv.tpl" \
+                  --output /tmp/trivy_\${DATE}.csv \
+                  nginx:latest
+                cp /tmp/trivy_\${DATE}.csv \$WORKSPACE/
+                """
+            }
+        }
+        stage('Update Manifest') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-credentials',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh """
+                    git config --global user.email "jenkins@jin-lab.com"
+                    git config --global user.name "Jenkins"
+                    git clone https://\${GIT_USER}:\${GIT_TOKEN}@github.com/K-hyeokjun/jin-lab.git /tmp/jin-lab-\${BUILD_NUMBER}
+                    cd /tmp/jin-lab-\${BUILD_NUMBER}
+                    sed -i 's|image: nginx:.*|image: nginx:${BUILD_NUMBER}|g' app-a/nginx.yaml
+                    git add .
+                    git commit -m "Update image tag to nginx:${BUILD_NUMBER}"
+                    git push origin main
+                    """
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: 'trivy_*.csv', allowEmptyArchive: true
+        }
+    }
+}
