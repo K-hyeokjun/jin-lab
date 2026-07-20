@@ -1,0 +1,110 @@
+```groovy
+pipeline {
+    agent any
+
+    environment {
+        /*
+         * Jenkins의 NeuVector Plugin 설정에 등록한 값입니다.
+         * 실제 URL이 아니라 Jenkins 전역 설정의 별칭입니다.
+         */
+        NEUVECTOR_CONTROLLER = 'neuvector-cluster-a'
+        NEUVECTOR_REGISTRY = 'dockerhub'
+
+        IMAGE_REPOSITORY = 'library/nginx'
+        IMAGE_TAG = 'latest'
+    }
+
+    stages {
+        stage('NeuVector Scan') {
+            steps {
+                neuvector(
+                    controllerEndpointUrlSelection:
+                        "${NEUVECTOR_CONTROLLER}",
+
+                    registrySelection:
+                        "${NEUVECTOR_REGISTRY}",
+
+                    repository:
+                        "${IMAGE_REPOSITORY}",
+
+                    tag:
+                        "${IMAGE_TAG}",
+
+                    scanTimeout:
+                        20
+                )
+            }
+        }
+
+        stage('Update Manifest') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-credentials',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        REPO_DIR="/tmp/jin-lab-${BUILD_NUMBER}"
+
+                        rm -rf "$REPO_DIR"
+
+                        git config --global \
+                          user.email "jenkins@jin-lab.com"
+
+                        git config --global \
+                          user.name "Jenkins"
+
+                        git clone \
+                          "https://${GIT_USER}:${GIT_TOKEN}@github.com/K-hyeokjun/jin-lab.git" \
+                          "$REPO_DIR"
+
+                        cd "$REPO_DIR"
+
+                        sed -i \
+                          "s|build-number:.*|build-number: '${BUILD_NUMBER}'|g" \
+                          app-b/nginx.yaml
+
+                        git add app-b/nginx.yaml
+
+                        if git diff --cached --quiet; then
+                            echo "No manifest changes."
+                        else
+                            git commit \
+                              -m "Deploy app-b - Jenkins build ${BUILD_NUMBER}"
+
+                            git push origin main
+                        fi
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '''
+            NeuVector scan passed.
+            The Kubernetes manifest was updated.
+            Argo CD can now synchronize the change.
+            '''
+        }
+
+        failure {
+            echo '''
+            Pipeline failed.
+            The GitHub manifest was not updated.
+            '''
+        }
+
+        always {
+            sh '''
+                rm -rf "/tmp/jin-lab-${BUILD_NUMBER}" || true
+            '''
+        }
+    }
+}
+```
