@@ -11,7 +11,7 @@ pipeline {
         NEUVECTOR_REGISTRY = 'dockerhub'
 
         IMAGE_REPOSITORY = 'library/nginx'
-        IMAGE_TAG = 'latest'
+        IMAGE_TAG = '1.31.3'
     }
 
     stages {
